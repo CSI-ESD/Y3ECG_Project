@@ -7,7 +7,7 @@
 #include <msp430.h>
 #include <ctype.h>
 #include <stdbool.h>
-#include "displayLib.h"
+#include "display.h"
 
 /**********************************************************************
 *   Function name: writeText

@@ -10,8 +10,8 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include "displayLib.h"
-#include "menuSimple.h"
+#include "../Lib_Display/display.h"
+#include "../Lib_Interface/menu.h"
 
 
 /*******************************************
