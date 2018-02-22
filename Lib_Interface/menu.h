@@ -18,7 +18,7 @@
 *
 *   major changes
 ***********************************************************************/
-#include "buttons.h"
+#include "../Lib_Inputs/buttons.h"
 
 #ifndef MENUSIMPLE_H_
 #define MENUSIMPLE_H_

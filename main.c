@@ -1,10 +1,10 @@
 #include <msp430.h>
 #include <stdbool.h>
 #include <string.h>
-#include "event_queue.h"
-#include "buttons.h"
-#include "displayLib.h"
-#include "menuSimple.h"
+#include "Lib_Utils/event_queue.h"
+#include "Lib_Inputs/buttons.h"
+#include "Lib_Display/display.h"
+#include "Lib_Interface/menu.h"
 
 int buttonpressedflag;
 int button_sampling_rate = 2;

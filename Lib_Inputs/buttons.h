@@ -8,7 +8,7 @@
 #ifndef BUTTONS_H_
 #define BUTTONS_H_
 
-#include "event_queue.h"
+#include "../Lib_Utils/event_queue.h"
 
 enum Button_event { Button_event_null = 0,
                     Button_event_press,
