@@ -17,6 +17,7 @@
 /*******************************************
  *       DATA DEFINITIONS
  ******************************************/
+extern ECGstate;
 
 /*
  * This is for updateMenuBoxes so it can keep track of the button presses
@@ -471,7 +472,7 @@ int updateMenuBoxes( enum Buttons buttonPress )
                 //TODO Implement
                 break;
             case t3MenuTextMax: //Return to ECG screen
-                // TODO Implement ECG screen
+                ECGstate = 1; //tell scheduler to start running waveform/test mode
                 break;
             }
             break;
