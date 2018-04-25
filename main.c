@@ -1,3 +1,11 @@
+/**********************************************************************
+*   File name: maine.c
+*   File owner: Tobias Madge
+*   Most recent editor: Tobias Madge
+
+ *  Created on: 23 Nov 2017
+***********************************************************************/
+
 #include <msp430.h>
 #include <stdbool.h>
 #include <string.h>
@@ -106,20 +114,36 @@ void startuphandling()
     if(systemtimer <= 10000)
     {
         writeFormattedText(startupMessage1, strlen(startupMessage1), 0, 0, 12, true);
+        if((button2pushed == 1 )||(button1pushed == 1))
+        {
+            systemtimer = 10000;
+        }
     }
     if(systemtimer >= 10000 && systemtimer <= 20000)
     {
+        if((button2pushed == 1 )||(button1pushed == 1))
+                {
+                    systemtimer = 20000;
+                }
         writeFormattedText(startupMessage2, strlen(startupMessage2), 0, 0, 12, true);
     }
     if(systemtimer >= 20000 && systemtimer <= 25000)
     {
+        if((button2pushed == 1 )||(button1pushed == 1))
+                {
+                    systemtimer = 25000;
+                }
         writeFormattedText(helpMessageButtons, strlen(helpMessageButtons), 0, 0, 12, true);
     }
     if(systemtimer >= 25000 && systemtimer <= 30000)
     {
+        if((button2pushed == 1 )||(button1pushed == 1))
+                {
+                    systemtimer = 30000;
+                }
         writeFormattedText(helpMessageButtons2, strlen(helpMessageButtons2), 0, 0, 12, true);
     }
-    if((systemtimer >= 30000) || button1pushed == 1 || button2pushed == 1 )
+    if((systemtimer >= 30000))
     {
         ECGstate = 2;       //current it defaults to going to the menu for the prototype however should probabaly go to the waveform mode by default.
     }
@@ -182,7 +206,14 @@ int main(void) {
            // send sensor data to waveform creating function
            // send waveform to display function
            // send number to screen directly via writeText or call a function that does so
-           firstimemenu = 1;
+
+           initDisplayBuffer(0xFF);
+                      writeText( "ECG data here ", 20, 1 , 20 , false);
+                      if(button1pushed == 1 || button2pushed == 1)
+                      {
+                          ECGstate = 2;
+                          firstimemenu = 1;
+                      }
        }
 
        if (ECGstate == 2) // menu mode
