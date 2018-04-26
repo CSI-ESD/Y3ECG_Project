@@ -9,8 +9,10 @@
 #include <msp430.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdio.h>
 #include "Lib_Utils/event_queue.h"
 #include "Lib_Inputs/buttons.h"
+#include "Lib_Inputs/ADC.h"
 #include "Lib_Display/display.h"
 #include "Lib_Interface/menu.h"
 
@@ -18,6 +20,8 @@ int buttonpressedflag;
 int button_sampling_rate = 2;
 int sensors_sampling_rate = 1;
 int ECGstate = 0;
+int adcReading = 1;
+
 /*
  * This int is a way of keeping track of what 'state' the screen is in - this way the scheduler can skip over unnesseary code
  *  Realistically this should be moved into its own function (which I can make) which will serve as an overlal controller for
@@ -46,6 +50,8 @@ int button1pushed = 0;
 int button2pushed = 0;
 Event e;
 
+int schedule_timer = 0;
+
 int button_process_event = 0;
 #define BUTTON_PROCESS_EVENT_TIME 50
 
@@ -60,8 +66,8 @@ __interrupt void Timer0_A0 (void)   // Timer0 A0 1ms interrupt service routine
     sample_sensor_timer++;
     if (sample_button_timer >= button_sampling_rate)
         {
-        button_timer( &button1, &button1_q );
-        button_timer( &button2, &button2_q );
+            button_timer( &button1, &button1_q );
+            button_timer( &button2, &button2_q );
             sample_button_timer = 0;
             button_process_event++;
             if( button_process_event >= BUTTON_PROCESS_EVENT_TIME )
@@ -77,6 +83,13 @@ __interrupt void Timer0_A0 (void)   // Timer0 A0 1ms interrupt service routine
                 sample_sensor_timer = 0;
             }
 
+    //Time to take a reading
+    adcReading++;
+    if (adcReading >= 40) {
+        adcReading = 1;
+    }
+
+    schedule_timer++;
 
 }
 
@@ -182,24 +195,25 @@ int main(void) {
 
     fullInit(); //initlization hardware
 
-        initialise_button1();
-        initialise_button2();
+    initialise_button1();
+    initialise_button2();
 
-        set_button_interval_time( button_sampling_rate );
-        int firstimemenu = 0;
+    set_button_interval_time( button_sampling_rate );
+    int firstimemenu = 0;
+
+    char adcRdg[5];
+    char doneReading = 0;
 
    while(1)
    {
-
        // this startup phase stuff should maybe moved to its own function to keep main clean. Needs feedback from group
        if(ECGstate == 0) //if in startup mode, this is only run once
        {
            initDisplayBuffer(0xFF);
            startuphandling();
            firstimemenu = 1;
+           outputDisplayBuffer();
        }
-
-
 
        if (ECGstate == 1)
        {  // if in 'Waveform mode'
@@ -207,13 +221,35 @@ int main(void) {
            // send waveform to display function
            // send number to screen directly via writeText or call a function that does so
 
-           initDisplayBuffer(0xFF);
-                      writeText( "ECG data here ", 20, 1 , 20 , false);
-                      if(button1pushed == 1 || button2pushed == 1)
-                      {
-                          ECGstate = 2;
-                          firstimemenu = 1;
-                      }
+
+           //writeText( "ECG data here ", 20, 1 , 20 , false);
+           if(button1pushed == 1 || button2pushed == 1)
+           {
+               ECGstate = 2;
+               firstimemenu = 1;
+           }
+
+           if (adcReading == 1) {
+               if (doneReading == 0) {
+
+                   //Extract ADC Reading
+                   sprintf (adcRdg, "%d", get_adc_value() ); //convert int of 5bytes into 5 seperate bytes
+                   writeText( adcRdg, sizeof(adcRdg) / sizeof(adcRdg[0]), 0, 32, false);
+
+                   //YOUR CODE HERE ALEX, 1400 is MaX reading: 0-1400
+
+
+
+                   //LEAVING THIS FUNCTION HERE. THIS IS LAWRENCES CODE. IT WILL ONLY OUTPUT THE DISPLAY BUFFER FOR A CERTAIN RANGE, SAVING TIME
+                   //outputDisplayBuffer(0, 96);
+
+                   //TO SAVE FURTHER TIME. SEVERAL ADC READINGS SHOULD BE READ BEFORE UPDATING THE DISPLAY, PERHAPS EVERY 4 TIMES. THIS CAN BE DONE WITH A VARIABLE IF STATEMENT
+                   outputDisplayBuffer();
+                   doneReading = 1;
+               }
+           } else {
+               doneReading = 0;
+           }
        }
 
        if (ECGstate == 2) // menu mode
@@ -226,9 +262,16 @@ int main(void) {
                menuflowhandling();
            }
 
-       }
-       outputDisplayBuffer();
+           outputDisplayBuffer();
 
+           if( ECGstate == 1 ) // clear the screen for waveform mode
+                               // This is done here to prevent a screen wipe every waveform iteration
+           {
+               initDisplayBuffer(0xFF);
+           }
+
+       }
+       //outputDisplayBuffer();
    }
 
 
