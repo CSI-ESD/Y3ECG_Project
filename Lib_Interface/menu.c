@@ -89,7 +89,7 @@ const char topLevelMenuText[TOP_LEVEL_MENU_TEXT_MAX][TYPE3_MAX_UCA] =
 #define TEST_DURATION_TEXT_MAX 2
 const char testDurationSubOptions[TEST_DURATION_TEXT_MAX][TYPE3_MAX_UCA] =
 {
-    "3min" /*add up & down arrows after text when populating this text box*/,
+    "3min", /*add up & down arrows after text when populating this text box*/
     "RETURN"
 };
 
@@ -394,8 +394,7 @@ int updateMenuBoxes( enum Buttons buttonPress )
             case 2: //Help Pls
                 type = 1;
                 initDisplayBuffer(0xff);
-                const unsigned char * temp = NULL;
-                writeFormattedText(temp, sizeof(helpMessageButtons)/sizeof(helpMessageButtons[0]), 0, 0, 12, true);
+                writeFormattedText(helpMessageButtons, sizeof(helpMessageButtons)/sizeof(helpMessageButtons[0]), 0, 0, 12, true);
                 menuOptionNumber = 2;
                 menuNestedLevel = 2;
                 highlightedOption = 1;
