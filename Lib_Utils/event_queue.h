@@ -20,8 +20,8 @@ typedef struct
     Event queue[SIZE_OF_EVENT_Q];
 } EventQueue;
 
-void init_q(EventQueue *q);
-int read_q(EventQueue *q, Event *e);
-int write_q(EventQueue *q, Event e);
+void initQ(EventQueue *q);
+int readQ(EventQueue *q, Event *e);
+int writeQ(EventQueue *q, Event e);
 
 #endif /* EVENT_QUEUE_H_ */

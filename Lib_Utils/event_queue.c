@@ -10,14 +10,14 @@
 #define FALSE 0
 #define TRUE -1
 
-void init_q(EventQueue *q)
+void initQ(EventQueue *q)
 {
     q->head = 0;
     q->tail = 0;
     q->size = 0;
 }
 
-int read_q(EventQueue *q, Event *e)
+int readQ(EventQueue *q, Event *e)
 {
     int rc;
     int s;
@@ -44,7 +44,7 @@ int read_q(EventQueue *q, Event *e)
     return rc;
 }
 
-int write_q(EventQueue *q, Event e)
+int writeQ(EventQueue *q, Event e)
 {
     int rc;
     int s;

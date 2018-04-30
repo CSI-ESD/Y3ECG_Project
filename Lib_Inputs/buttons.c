@@ -8,13 +8,13 @@
 #include <msp430.h>
 #include "buttons.h"
 
-static void button_released_enter( Button *current_button, EventQueue *queue );
-static void button_released_timer( Button *current_button, EventQueue *queue );
-static void button_maybe_pressed_enter( Button *current_button, EventQueue *queue );
-static void button_maybe_pressed_timer( Button *current_button, EventQueue *queue );
-static void button_pressed_enter( Button *current_button, EventQueue *queue );
-static void button_pressed_timer( Button *current_button, EventQueue *queue);
-static void enter_button_state( enum Button_state new_state, Button *current_button, EventQueue *queue );
+static void buttonReleasedEnter( Button *currentButton, EventQueue *queue );
+static void buttonReleasedTimer( Button *currentButton, EventQueue *queue );
+static void buttonMaybePressedEnter( Button *currentButton, EventQueue *queue );
+static void buttonMaybePressedTimer( Button *currentButton, EventQueue *queue );
+static void buttonPressedEnter( Button *currentButton, EventQueue *queue );
+static void buttonPressedTimer( Button *currentButton, EventQueue *queue);
+static void enterButtonState( enum ButtonState newState, Button *currentButton, EventQueue *queue );
 
 #define MINIMUM_PRESS_TIME 100
 #define MAXIMUM_RELEASE_TIME 100
@@ -23,152 +23,125 @@ static void enter_button_state( enum Button_state new_state, Button *current_but
 #define TRUE 1
 #define FALSE 0
 
+int intervalTime = 5;
 
-int interval_time = 5;
-
-
-int is_button_pressed( Button *current_button, EventQueue *queue )
-{
+int isButtonPressed( Button *currentButton, EventQueue *queue ) {
     Event e;
 
-    if( read_q(queue, &e))
-    {
-        if( e.event == Button_event_press)
-        {
+    if( readQ( queue, &e ) ) {
+        if( e.event == ButtonEventPress ) {
             return 1;
         }
     }
-    else
-    {
-        return 0;
-    }
+
+    return 0;
 }
 
 /**********************************************************************
-*   Function name: set_button_interval_time
+*   Function name: setButtonIntervalTime
 *   Desc: set the interval time this function is called from,
 *         allowing the button handler to time each button press
 ***********************************************************************/
-void set_button_interval_time( int button_interval_time )
-{
-    interval_time = button_interval_time;
+void setButtonIntervalTime( int buttonIntervalTime ) {
+    intervalTime = buttonIntervalTime;
 }
 
 /**********************************************************************
-*   Function name: current_button_pressed
+*   Function name: currentButtonPressed
 *   Desc: Check if the current button has been pressed, returning true
 *         if pressed and false if not pressed
 ***********************************************************************/
-int current_button_pressed( Button *current_button )
-{
-    int button_pressed = FALSE;
+int currentButtonPressed( Button *currentButton ) {
+    int buttonPressed = FALSE;
 
-    if( current_button->button_num == Button1 && (P1IN & BIT1) == 0 )
-    {
-        button_pressed = TRUE;
+    if( currentButton->buttonNum == Button1 && ( P1IN & BIT1 ) == 0 ) {
+        buttonPressed = TRUE;
     }
-    else if ( current_button->button_num == Button2 && (P4IN & BIT5) == 0 )
-    {
-        button_pressed = TRUE;
+    else if ( currentButton->buttonNum == Button2 && (P4IN & BIT5) == 0 ) {
+        buttonPressed = TRUE;
     }
 
-    return button_pressed;
+    return buttonPressed;
 }
 /**********************************************************************
-*   Function name: button_released_enter
-*   Desc: perform initialisation for the Button_released state
+*   Function name: buttonReleasedEnter
+*   Desc: perform initialisation for the ButtonReleased state
 ***********************************************************************/
-void button_released_enter( Button *current_button, EventQueue *queue )
-{
+void buttonReleasedEnter( Button *currentButton, EventQueue *queue ) {
 }
 
 /**********************************************************************
-*   Function name: button_released_timer
-*   Desc: change state to Button_maybe_pressed if current button is
+*   Function name: buttonReleasedTimer
+*   Desc: change state to ButtonMaybePressed if current button is
 *         pressed
 ***********************************************************************/
-void button_released_timer( Button *current_button, EventQueue *queue )
-{
-    if( current_button_pressed( current_button ) )
-    {
-        enter_button_state(Button_maybe_pressed, current_button, queue );
+void buttonReleasedTimer( Button *currentButton, EventQueue *queue ) {
+    if( currentButtonPressed( currentButton ) ) {
+        enterButtonState( ButtonMaybePressed, currentButton, queue );
     }
 }
 
 /**********************************************************************
-*   Function name: button_maybe_pressed_enter
-*   Desc: perform initialisation for the Button_maybe_pressed state
+*   Function name: buttonMaybePressedEnter
+*   Desc: perform initialisation for the ButtonMaybePressed state
 ***********************************************************************/
-void button_maybe_pressed_enter( Button *current_button, EventQueue *queue )
-{
-    current_button->press_time = 0;
+void buttonMaybePressedEnter( Button *currentButton, EventQueue *queue ) {
+    currentButton->pressTime = 0;
 }
 
 /**********************************************************************
-*   Function name: button_maybe_pressed_timer
-*   Desc: de-bounce button press, changing state to Button_released if
-*         released and to Button_pressed if button remains pressed for
+*   Function name: buttonMaybePressedTimer
+*   Desc: de-bounce button press, changing state to ButtonReleased if
+*         released and to ButtonPressed if button remains pressed for
 *         a certain amount of time
 ***********************************************************************/
-void button_maybe_pressed_timer( Button *current_button, EventQueue *queue )
-{
-    const Event e = { Button_event_press, 0, 0, 0 };
+void buttonMaybePressedTimer( Button *currentButton, EventQueue *queue ) {
+    const Event e = { ButtonEventPress, 0, 0, 0 };
 
-    current_button->press_time++;
-    if( !current_button_pressed( current_button ) )
-    {
-        if (current_button->press_time >= (MINIMUM_PRESS_TIME/interval_time ))
-        {
+    currentButton->pressTime++;
+    if( !currentButtonPressed( currentButton ) ) {
+        if ( currentButton->pressTime >= ( MINIMUM_PRESS_TIME / intervalTime ) ) {
 
-            if (!write_q(queue, e))
-            {
+            if (!writeQ(queue, e)) {
                 //queue full
             }
         }
-        enter_button_state(Button_released, current_button, queue);
+        enterButtonState( ButtonReleased, currentButton, queue );
     }
-    else
-    {
-        if( current_button->press_time >= (BUTTON_HELD_TIME/interval_time))
-        {
-            enter_button_state(Button_pressed, current_button, queue );
+    else {
+        if( currentButton->pressTime >= ( BUTTON_HELD_TIME / intervalTime ) ) {
+            enterButtonState( ButtonPressed, currentButton, queue );
         }
     }
 }
 
 /**********************************************************************
-*   Function name: button_pressed_enter
+*   Function name: buttonPressedEnter
 *   Desc: perform initialisation for the button pressed state
 ***********************************************************************/
-void button_pressed_enter( Button *current_button, EventQueue *queue )
-{
-    const Event e = { Button_event_press, 0, 0, 0 };
+void buttonPressedEnter( Button *currentButton, EventQueue *queue ) {
+    const Event e = { ButtonEventPress, 0, 0, 0 };
 
-    current_button->press_time = 0;
+    currentButton->pressTime = 0;
 
-    if (!write_q(queue, e))
-    {
+    if ( !writeQ( queue, e ) ) {
         //queue full
     }
 }
 
 /**********************************************************************
-*   Function name: button_pressed_timer
+*   Function name: buttonPressedTimer
 *   Desc: increment button press after a set time, and change state to
-*         Button_maybe_released if button is released
+*         ButtonMaybeReleased if button is released
 ***********************************************************************/
-void button_pressed_timer( Button *current_button, EventQueue *queue)
-{
-    current_button->press_time++;
-    if( !current_button_pressed( current_button ) )
-    {
-        enter_button_state( Button_maybe_released, current_button, queue );
+void buttonPressedTimer( Button *currentButton, EventQueue *queue ) {
+    currentButton->pressTime++;
+    if( !currentButtonPressed( currentButton ) ) {
+        enterButtonState( ButtonMaybeReleased, currentButton, queue );
     }
-    else
-    {
-        if( current_button->press_time >= (BUTTON_HELD_TIME/interval_time ))
-        {
-            enter_button_state( Button_pressed, current_button, queue );
+    else {
+        if( currentButton->pressTime >= (BUTTON_HELD_TIME/intervalTime )) {
+            enterButtonState( ButtonPressed, currentButton, queue );
         }
     }
 }
@@ -178,84 +151,76 @@ void button_pressed_timer( Button *current_button, EventQueue *queue)
 *   Function name: button_maybe_released_enter
 *   Desc: perform initialisation for the button_maybe_released state
 ***********************************************************************/
-void button_maybe_released_enter( Button *current_button, EventQueue *queue )
-{
-    current_button->release_time = 0;
+void button_maybe_released_enter( Button *currentButton, EventQueue *queue ) {
+    currentButton->releaseTime = 0;
 }
 
 /**********************************************************************
 *   Function name: button_maybe_released_timer
-*   Desc: de-bounce button release, changing state to Button_pressed if
-*         pressed and to Button_released if button remains released for
+*   Desc: de-bounce button release, changing state to ButtonPressed if
+*         pressed and to ButtonReleased if button remains released for
 *         a certain amount of time
 ***********************************************************************/
-void button_maybe_released_timer( Button *current_button, EventQueue *queue)
-{
-    current_button->release_time++;
+void button_maybe_released_timer( Button *currentButton, EventQueue *queue ) {
+    currentButton->releaseTime++;
 
-    if( !current_button_pressed( current_button ))
-    {
-        if (current_button->release_time >= (MAXIMUM_RELEASE_TIME/interval_time))
-        {
-            enter_button_state(Button_released, current_button, queue);
+    if( !currentButtonPressed( currentButton )) {
+        if (currentButton->releaseTime >= ( MAXIMUM_RELEASE_TIME / intervalTime )) {
+            enterButtonState( ButtonReleased, currentButton, queue );
         }
     }
-    else
-    {
-        enter_button_state(Button_pressed, current_button, queue);
+    else {
+        enterButtonState( ButtonPressed, currentButton, queue );
     }
 }
 
 /**********************************************************************
-*   Function name: enter_button_state
+*   Function name: enterButtonState
 *   Desc: enter a new state (can be same state, re-initialising state
 *         variables
 ***********************************************************************/
-void enter_button_state( enum Button_state new_state, Button *current_button, EventQueue *queue )
-{
-    switch( new_state )
-    {
-        case Button_null:
+void enterButtonState( enum ButtonState newState, Button *currentButton, EventQueue *queue ) {
+    switch( newState ) {
+        case ButtonNull:
             break;
-        case Button_released:
-            button_released_enter( current_button, queue );
+        case ButtonReleased:
+            buttonReleasedEnter( currentButton, queue );
             break;
-        case Button_maybe_pressed:
-            button_maybe_pressed_enter( current_button, queue );
+        case ButtonMaybePressed:
+            buttonMaybePressedEnter( currentButton, queue );
             break;
-        case Button_pressed:
-            button_pressed_enter( current_button, queue );
+        case ButtonPressed:
+            buttonPressedEnter( currentButton, queue );
             break;
-        case Button_maybe_released:
-            button_maybe_released_enter( current_button, queue );
+        case ButtonMaybeReleased:
+            button_maybe_released_enter( currentButton, queue );
         default:
             break;
     }
 
-    current_button->current_state = new_state;
+    currentButton->currentState = newState;
 }
 
 /**********************************************************************
-*   Function name: button_timer
+*   Function name: buttonTimer
 *   Desc: enter current state
 ***********************************************************************/
-void button_timer( Button *current_button, EventQueue *queue )
-{
-    switch ( current_button->current_state )
-    {
-        case Button_null:
+void buttonTimer( Button *currentButton, EventQueue *queue ) {
+
+    switch ( currentButton->currentState ) {
+        case ButtonNull:
             break;
-        case Button_released:
-            button_released_timer( current_button, queue );
+        case ButtonReleased:
+            buttonReleasedTimer( currentButton, queue );
             break;
-        case Button_maybe_pressed:
-            button_maybe_pressed_timer( current_button, queue );
+        case ButtonMaybePressed:
+            buttonMaybePressedTimer( currentButton, queue );
             break;
-        case Button_pressed:
-            button_pressed_timer( current_button, queue );
+        case ButtonPressed:
+            buttonPressedTimer( currentButton, queue );
             break;
-        case Button_maybe_released:
-            button_maybe_released_timer( current_button, queue );
+        case ButtonMaybeReleased:
+            button_maybe_released_timer( currentButton, queue );
         default:
             break;
     }

@@ -8,8 +8,8 @@
 #ifndef ADC_H_
 #define ADC_H_
 
-void init_adc();
+void initAdc();
 
-int get_adc_value();
+int getAdcValue();
 
 #endif /* ADC_H_ */
