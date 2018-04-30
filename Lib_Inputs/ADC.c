@@ -2,11 +2,11 @@
 
 #define RDGSARRAYSIZE 192
 
-volatile int adc_val = 0;
+volatile int adcVal = 0;
 int rdgsArray [RDGSARRAYSIZE];
 unsigned int rdgsIndex = 0;
 
-void init_adc(void)
+void initAdc(void)
 {
     int i;
 
@@ -84,7 +84,7 @@ void __attribute__ ((interrupt(ADC12_VECTOR))) ADC12_ISR (void)
         case ADC12IV_ADC12IFG10:  break;        // Vector 32:  ADC12MEM10
         case ADC12IV_ADC12IFG11:  break;        // Vector 34:  ADC12MEM11
         case ADC12IV_ADC12IFG12:  //break;      // Vector 36:  ADC12MEM12
-            adc_val = rdgsArray[rdgsIndex++] = ADC12MEM12;
+            adcVal = rdgsArray[rdgsIndex++] = ADC12MEM12;
 
             if (rdgsIndex >= RDGSARRAYSIZE) {
                 rdgsIndex = 0;
@@ -116,6 +116,6 @@ void __attribute__ ((interrupt(ADC12_VECTOR))) ADC12_ISR (void)
     }
 }
 
-int get_adc_value( ) {
-    return adc_val;
+int getAdcValue( ) {
+    return adcVal;
 }

@@ -10,29 +10,29 @@
 
 #include "../Lib_Utils/event_queue.h"
 
-enum Button_event { Button_event_null = 0,
-                    Button_event_press,
-                    Num_button_Events };
+enum ButtonEvent { ButtonEventNull = 0,
+                    ButtonEventPress,
+                    NumButtonEvents };
 
-enum Buttons { Button1 = 0, Button2, Num_buttons, No_button };
+enum Buttons { Button1 = 0, Button2, NumButtons, NoButton };
 
-enum Button_state{ Button_null = 0,
-                   Button_released,
-                   Button_maybe_pressed,
-                   Button_pressed,
-                   Button_maybe_released,
-                   Num_button_states };
+enum ButtonState{ ButtonNull = 0,
+                   ButtonReleased,
+                   ButtonMaybePressed,
+                   ButtonPressed,
+                   ButtonMaybeReleased,
+                   NumButtonStates };
 
 typedef struct
 {
-    enum Buttons button_num;
-    enum Button_state current_state;
-    unsigned int press_time;
-    unsigned int release_time;
+    enum Buttons buttonNum;
+    enum ButtonState currentState;
+    unsigned int pressTime;
+    unsigned int releaseTime;
 } Button;
 
-int is_button_pressed( Button *current_button, EventQueue *queue );
-void set_button_interval_time( int button_interval_time );
-void button_timer( Button *current_button, EventQueue *queue );
+int isButtonPressed( Button *currentButton, EventQueue *queue );
+void setButtonIntervalTime( int buttonIntervalTime );
+void buttonTimer( Button *currentButton, EventQueue *queue );
 
 #endif /* BUTTONS_H_ */
