@@ -336,9 +336,6 @@ int main(void) {
         );
 
     P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 on (Red LED)
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
     P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
 
 
