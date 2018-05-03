@@ -1,8 +1,7 @@
 /**********************************************************************
-*   File name: maine.c
+*   File name: main.c
 *   File owner: Tobias Madge
 *   Most recent editor: Tobias Madge
-
  *  Created on: 23 Nov 2017
 ***********************************************************************/
 
@@ -173,8 +172,8 @@ void menuflowhandling() {
 void fullInit(){
 
     // Initialisation
-    //WDTCTL = WDTPW | WDTHOLD;  // Stop watchdog timer
-    //PM5CTL0 &= ~LOCKLPM5;      //Disable the power-on high-impedance mode
+    WDTCTL = WDTPW | WDTHOLD;  // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;      //Disable the power-on high-impedance mode
 
     //inputs
     P1DIR &= ~0x02;            // Setting P1.1 to input (switch2)
@@ -233,8 +232,8 @@ void fullInit(){
     initAdc();
 }
 
-int main(void) {
-
+void post() //POST tests work however they break the buttons. Leaving here until fixed
+{
     WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
 
     PM5CTL0 &= ~LOCKLPM5;           // Disable the GPIO power-on default high-impedance mode
@@ -337,7 +336,9 @@ int main(void) {
 
     P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
     P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+}
 
+int main(void) {
 
     fullInit(); /* initlization hardware */
 
