@@ -23,19 +23,23 @@
 #ifndef MENUSIMPLE_H_
 #define MENUSIMPLE_H_
 
-
-
 /*******************************************
  *          MENU DECLARATIONS
  ******************************************/
 
+#define MAX_STARTUP_MSG_CHARS 144
+
+extern const unsigned char startupMessage1[MAX_STARTUP_MSG_CHARS];
+extern const unsigned char startupMessage2[MAX_STARTUP_MSG_CHARS];
+extern const unsigned char helpMessageButtons[MAX_STARTUP_MSG_CHARS];
+extern const unsigned char helpMessageButtons2[MAX_STARTUP_MSG_CHARS];
+
+/// @brief  screen dimensions
 #define MAX_PIXELS_VERT 96
 #define MAX_PIXELS_HORIZ 96
 
-#define MAX_MENU_BUTTON_PRESS_QUEUE_SIZE 30
-
 /*
- * used primarily by writeLineOfChars though
+ * used by writeLineOfChars though
  * works as a pretty good abstraction in any context
  * */
 typedef enum{
@@ -43,10 +47,7 @@ typedef enum{
     HORIZONTAL = 1
 }LineDirection;
 
-#define MAX_BOXES_ONSCREEN 3
-#define MIN_BOXES_ONSCREEN 1
-
-/* Size in bytes */
+/// @brief  standard size of a character on the screen
 #define CHARFONT_SIZE_VERTICAL 8
 #define CHARFONT_SIZE_HORIZONTAL 1
 
@@ -61,62 +62,23 @@ typedef enum{
 #define TYPE2_MAX_UCA 50
 #define TYPE3_MAX_UCA 30
 
-/*
- * named as t[x][direction]Border
- * where x = thickness(t) of border between 1-3 pixels
- * direction = left | right
- */
-extern const short t1Thickness;
-extern const char t1LeftBorder;
-extern const char t1RightBorder;
-
-extern const short t2Thickness;
-extern const char t2LeftBorder;
-extern const char t2RightBorder;
-
-extern const short t3Thickness;
-extern const char t3LeftBorder;
-extern const char t3RightBorder;
-
-/*
- * technically only need one of these for the upper & lower border
- * but it could be subject to change in the future for some reason.
- */
-extern const char topBorder;
-extern const char bottomBorder;
-
 /*******************************************
- *       STARTUP/WELCOME MESSAGE
+ *     MENU OPTION STRUCT
  ******************************************/
 
-#define MAX_STARTUP_MSG_CHARS 144
-extern const unsigned char startupMessage1[MAX_STARTUP_MSG_CHARS];
-
-extern const unsigned char startupMessage2[MAX_STARTUP_MSG_CHARS];
-
-extern const unsigned char helpMessageButtons[MAX_STARTUP_MSG_CHARS];
-
-extern const unsigned char helpMessageButtons2[MAX_STARTUP_MSG_CHARS];
-
-/*******************************************
- *     MENU OPTION TEXT DECLARATIONS
- ******************************************/
-
-/*
- * type 3 menuText
- */
-extern const char t3MenuText[4][TYPE3_MAX_UCA];
-
-/*
- * These are the menu Sub-options for t3MenuText option number 1
- * This is just an example, but in the future there would be more of these,
- * held within a more advanced container which allows integer/float values for
- * options to be maintained within. For now, just text to use as an example.
- */
-extern const char t3MenuSubOptions1[2][TYPE3_MAX_UCA];
-extern const char t2MenuText[3][TYPE2_MAX_UCA];
-extern const char t1MenuText[2][TYPE1_MAX_UCA];
-
+///
+/// @brief  this structure makes up the primary menuOption structure that's used to create the interface menu.
+///         contains a textual & integer/floating point values that can be used to manage and maintain components
+///         such as time. Contains pointers to menuOptions which link to other options based on the button pressed.
+///
+typedef struct{
+    char    text[16];
+    int     intval;
+    float   floatval;
+    struct  MenuOption* prevMenu;    //Navigate to previous menu level
+    struct  MenuOption* nextMenu;    //Navigate to next menu level
+    struct  Menuoption* nextOption;   //Navigate to next option within the same menu level
+}MenuOption;
 
 /*******************************************
  *         FUNCTION PROTOTYPES
@@ -126,62 +88,78 @@ extern const char t1MenuText[2][TYPE1_MAX_UCA];
  *                  IDE's
  ******************************************/
 
-/**********************************************************************
- * Function name: writeLineOfChars
- *
- * Writes a line of chars (charToWrite) VERTICAL(0) or HORIZONTAL(1)
- * as dictated by the enum LineDirection at position (1-96).
- ***********************************************************************/
+///
+/// @brief  writes a line of charToWrite starting from position and dictated by lineDirection
+///
+/// @param[in] charToWrite      Char to write to display buffer
+/// @param[in] position         position from which to begin writing the chars
+/// @param[in] lineDir          Either vertical or Horizontal
+///
 void writeLineOfChars(char charToWrite, short position, LineDirection lineDir);
 
-/**********************************************************************
- * NOTE: Belongs in DisplayLib though leaving it here prior to merge.
- *
- * Function name: writeFormattedText
- *
- * This function takes inText and writes it to the display starting at positionX/Y and
- * accounts for line & word wrapping. note that it will always reset the cursor back to
- * the starting positionX on wrapping using maxCharsPerLine to determine how many characters
- * it can write before it wraps.
- ***********************************************************************/
-void writeFormattedText(const char *text, int size, int positionX,int positionY, short maxCharsPerLine, bool inverted);
+///
+/// @brief  Writes text to display buffer using wordwrap determined by maxCharsPerLine
+///
+/// @param[in] inText           Text to write to screen
+/// @param[in] size             size of the text to write out
+/// @param[in] positionX        the X position from which to begin writing & wrap cursor to on word wrap
+/// @param[in] positionY        the Y position from which to begin writing
+/// @param[in] maxCharsPerLine  Maximum number of characters that can be written per horizontal line
+/// @param[in] inverted         determines whether the text is the highlighted element or the background
+///
+void writeFormattedText(const unsigned char *inText, int size, int positionX,int positionY, short maxCharsPerLine, bool inverted);
 
-/*
- * writes the Horizontal borders of the menu text boxes given
- * type = { 1, 2, 3 } where type is the number of boxes on-screen
- */
+///
+/// @brief  writes the Horizontal borders to the buffer based on the type
+///
+/// @param[in] type = { 1, 2, 3 }             determines number of borders
+///
 void writeHorizontalBorders( short type );
 
-/*
- * writes the Vertical borders of the menu text boxes given
- * type = { 1, 2, 3 } where type is the number of boxes on-screen
- */
+///
+/// @brief  writes the vertical borders to the buffer based on the type
+///
+/// @param[in] type = { 1, 2, 3 }             determines number of borders
+///
 int writeVerticalBorders( short type );
 
-/*
- * writes the menu text boxes given;
- * type = { 1, 2, 3 } where type is the number of boxes on-screen
- */
+///
+/// @brief  writes both the vertical and horizontal borders
+///
+/// @param[in] type = { 1, 2, 3 }             determines number of text boxes
+///
 int writeTextBoxes( short type );
 
-/*
- * Populates the boxNum with the MenuText. Type is required
- * in order to check for text that is too long to fit inside a single box
- * and would otherwise overwrite other pixels.
- */
+///
+/// @brief  populate the previously generated text boxes with MenuText based on the below parameters
+///
+/// @param[in] menuText         pointer to text that will be written to the display buffer
+/// @param[in] type             Determines the number of boxes on screen
+/// @param[in] boxNum           which box number to insert text into
+/// @param[in] inverted         determines whether the text is the highlighted element or the background
+///
 int populateTextBox(const char *menuText, short type, short boxNum, bool inverted);
 
-/*
- * Function to be called on startup of ECG Machine
- * and whenever entering menu from another displayState.
- * Otherwise updateMenuBoxes() should be called in the LCD handler
- */
+///
+/// @brief  Called on startup as well as whenever entering or re-entering the menu from a different displayState.
+///         once in the menu and initialiseMenuBoxes has been called, updateMenuBoxes should be called each button input
+///
+/// @param[in] type = { 1, 2, 3 }             determines number of text boxes
+///
 void initialiseMenuBoxes( int type );
 
-/*
- * function called whenever already in displayState MENUBOX
- * and a button press has occurred which the screen needs to be updated for.
- */
+///
+/// @brief  skeleton function to initialise the menuOption structure [NOT USED YET]
+///
+/// @param[in] type = { 1, 2, 3 }             determines number of borders
+///
+void initMenu(int type);
+
+///
+/// @brief  Function called to update menu boxes based on buttonPress passed in
+///
+/// @param[in] buttonPress      Enumeration of button presses to keep consistent across code base
+///
 int updateMenuBoxes( enum Buttons buttonPress );
 
 
