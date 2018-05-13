@@ -620,7 +620,7 @@ int updateMenuBoxes( enum Buttons buttonPress )
             break;
         }
     }
-    else if ( Num_buttons ) //This can be used as a temporary indicator to mean "Both buttons pressed"
+    else if ( NumButtons == buttonPress ) //This can be used as a temporary indicator to mean "Both buttons pressed"
     {
         switch(menuNestedLevel)
         {
