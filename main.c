@@ -20,6 +20,18 @@ int button_sampling_rate = 2;
 int sensors_sampling_rate = 1;
 int ECGstate = 0;
 int adcReading = 1;
+unsigned int IntialWaveFormSetup = 0;
+int WaveformAdcData[24]; //saves all the points (every 4 pixels) of on-screen data on the board
+
+/*below variable and code takes up too much space in memory. Work out a way around this in future
+int tempWaveformDataBuffer[96];        // THIS is holding the row, and remembering the column number
+                                          // this is to hold the waveform, it'll hold the previous waveform data -
+                                          // so it can be wiped from the previous set without needing to access EVERY part of the data buffed
+                                          // ALWAYS save to this when writing to the databuffer for the wave form.
+ this code crashes everything - why?         temp = tempWaveformDataBuffer[x*8]; //find ref point for where to wipe
+                                                 displayBuffer[x][temp] = 0xFF; //wipe old waveform
+
+ this code crashes everything - why?        tempWaveformDataBuffer[x*8] = WaveformAdcData[x];//backup data in temp waveform for next runthroughs wipe =*/
 
 /*
  * This int is a way of keeping track of what 'state' the screen is in - this way the scheduler can skip over unnesseary code
@@ -47,11 +59,13 @@ int button1pushed = 0;
 int button2pushed = 0;
 Event e;
 
-int schedule_timer = 0;
+int BPM_timer_ms = 0;
+int BPM_timer_s = 0;
 
 int button_process_event = 0;
 #define BUTTON_PROCESS_EVENT_TIME 50
-
+#define MIN_HEART_BEAT_SPIKE 150
+#define SECONDS_IN_MINUTE 60
 
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer0_A0 (void) {  /* Timer0 A0 1ms interrupt service routine */
@@ -84,13 +98,14 @@ __interrupt void Timer0_A0 (void) {  /* Timer0 A0 1ms interrupt service routine 
         adcReading = 1;
     }
 
-    schedule_timer++;
+    BPM_timer_ms++;
 
+    if( BPM_timer_ms == 1000 )
+    {
+        BPM_timer_s++;
+        BPM_timer_ms = 0;
+    }
 }
-
-/*
- *
- *  note to self move this to button header at some point*/
 
 void initialise_button1() {
     button1.buttonNum = Button1;
@@ -105,11 +120,6 @@ void initialise_button2() {
     button2.pressTime = 0;
     button2.releaseTime = 0;
 }
-
-/*
- *
- *  note to self move this to button header at some point*/
-
 
 void startuphandling() {
 
@@ -145,7 +155,6 @@ void startuphandling() {
     }
 }
 
-
 int MenuCurrentSelection = 0;
 enum Buttons buttonPressMask = NoButton;
 
@@ -168,6 +177,204 @@ void menuflowhandling() {
      }
      updateMenuBoxes( buttonPressMask );
 }
+
+void formatCurrentBpm( char *averageBpmChar, int averageBpm ) {
+    if ( averageBpm < 100 ) { //ensure 2 digit value starts with 0
+        averageBpmChar[0] = '0';
+        sprintf (averageBpmChar + 1, "%d", averageBpm );
+    }
+    else {
+        sprintf (averageBpmChar, "%d", averageBpm );
+    }
+}
+
+void writeBpmReadingToDisplay( int averageBpm ) {
+    char averageBpmChar[3] = {0,0,0};
+
+    if( BPM_timer_s >= 5 ) {
+        formatCurrentBpm( averageBpmChar, averageBpm);
+        writeText( averageBpmChar, sizeof(averageBpmChar) / sizeof(averageBpmChar[0]), 9, 0, false);
+    }
+}
+
+int calculateAverageBpm( int numHeartBeats ) {
+    if( BPM_timer_s >= 3 ) {    //provide time for readings to balance. Only start logging readings 3 seconds in
+        return (numHeartBeats * SECONDS_IN_MINUTE) / BPM_timer_s - 3;
+    }
+    return 0;
+}
+
+int calculateCurrentBpm( char *numHeartBeats15S, int arraySize, int arrayIndex, int averageBpm ) {
+    int i;
+    int totalHeartBeats15S = 0;
+    int averageBpm15S;
+
+    // Count total heart beats within 15 seconds, using the index to count all but the current second
+    for( i = 0; i < arraySize - 1; i++ ) {
+        totalHeartBeats15S = totalHeartBeats15S + numHeartBeats15S[(arrayIndex + i) % arraySize];
+    }
+
+    if( BPM_timer_s >= 15 ) {
+        //calculate average
+        averageBpm15S = (totalHeartBeats15S * 60) / 15;
+    }
+    else if( BPM_timer_s >= 5) {
+        //Use the total average since the readings are still to be populated
+        averageBpm15S = averageBpm;
+    }
+
+    return averageBpm15S;
+}
+
+void cleanWaveform(){
+    unsigned int x;
+    unsigned int y;
+    for(y = 12;y < 96; y++){
+        for(x = 0; x< 12; x++){
+            displayBuffer[x][y] = 0xFF;
+        }
+    }
+}
+
+void connectDots(int waveMode){
+   unsigned int y, x, y2, waveConnectPoint, diff, gradiant;
+
+if (waveMode == 1){
+   for(x = 0;x < 23; x++){   //connect dots      -     make int its own function !!
+       y = WaveformAdcData[x]+12;       // current y coordinate
+       y2 = WaveformAdcData[x+1]+12;    // second y coordinate to connect to
+       if(y2 == y){    // if there is no difference between the two points
+          if (x % 2 == 0){
+               displayBuffer[x/2][y] = 0x0F; //(displayBuffer[x][temp2+12] & 0x7F); // Connect as a line
+           }
+           else if (x % 2 == 1){
+               displayBuffer[x/2][y] = 0xF0; //(displayBuffer[x][temp2+12] & 0xF7); // Connect as a line
+           }
+       }
+
+       if (y2 > y){   // if the second point is below
+                     diff = y - y2;
+                  }
+                  else{          // if the second point is above
+                     diff = y2 - y;
+                  }
+       if (x % 2 == 0){      // test whether x is even or odd and allocate the initial case accordingly
+          waveConnectPoint = 1; //messing with first  hex in char
+       }
+       else if (x % 2 == 1){     //messing with second hex in char
+          waveConnectPoint = 5;
+       }
+       gradiant = diff/3;
+       while(y2 != y){
+              if (waveConnectPoint != 4 || waveConnectPoint != 8){
+                  if(gradiant == 0){         //are we going one to the right, or not moving yet?
+                      waveConnectPoint++; // one bit right
+                      gradiant = diff/3;
+                  }else{ //already correct place don't move
+                      gradiant--;
+                  }
+              }
+           switch(waveConnectPoint){    // switch between even odd cases and whichbyte we're modifying
+               case 1:
+                   displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xBF;
+                   break;
+               case 2:
+                   displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xDF;
+                   break;
+               case 3:
+                   displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xEF;
+                   break;
+               case 4: // this is the breakpoint case if it gets here there's an error
+                   break;
+               case 5:
+                   displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xFB;
+                   break;
+               case 6:
+                   displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xFD;
+                   break;
+               case 7:
+                   displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xFE;
+                   break;
+               default:
+                   //should never be here but should probabally add an error at some point for more resliant code
+           }
+           if (y2 > y){   // if the second point is below
+              y++;
+           }
+           else{          // if the second point is above
+              y--;
+           }
+       }
+   }
+}
+else if(waveMode == 2){
+    for(x = 0;x < 23; x++){   //connect dots      -     make int its own function !!
+        y = WaveformAdcData[x]+12;       // current y coordinate
+        y2 = WaveformAdcData[x+1]+12;    // second y coordinate to connect to
+        if(y2 == y){    // if there is no difference between the two points
+           if (x % 2 == 0){
+                displayBuffer[x/2][y] = 0x0F; //(displayBuffer[x][temp2+12] & 0x7F); // Connect as a line
+            }
+            else if (x % 2 == 1){
+                displayBuffer[x/2][y] = 0xF0; //(displayBuffer[x][temp2+12] & 0xF7); // Connect as a line
+            }
+        }
+
+        if (y2 > y){   // if the second point is below
+                      diff = y - y2;
+                   }
+                   else{          // if the second point is above
+                      diff = y2 - y;
+                   }
+        if (x % 2 == 0){      // test whether x is even or odd and allocate the initial case accordingly
+           waveConnectPoint = 1; //messing with first  hex in char
+        }
+        else if (x % 2 == 1){     //messing with second hex in char
+           waveConnectPoint = 5;
+        }
+        gradiant = diff/3;
+        while(y2 != y){
+               if (waveConnectPoint != 4 || waveConnectPoint != 8){
+                   if(gradiant == 0){         //are we going one to the right, or not moving yet?
+                       waveConnectPoint++; // one bit right
+                       gradiant = diff/3;
+                   }else{
+                       //already correct place don't move
+                       gradiant--;
+                   }
+               }
+            switch(waveConnectPoint){    // switch between even odd cases and whichbyte we're modifying
+                case 1:
+                    displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xBF;
+                case 2:
+                    displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xDF;
+                case 3:
+                    displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xEF;
+                case 4:
+                    // this is the breakpoint case if it gets here there's an error
+                case 5:
+                    displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xFB;
+                case 6:
+                    displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xFD;
+                case 7:
+                    displayBuffer[x/2][y] = displayBuffer[x/2][y] & 0xFE;
+                default:
+                    //should never be here but should probabally add an error at some point for more resliant code
+            }
+            if (y2 > y){   // if the second point is below
+               y++;
+            }
+            else{          // if the second point is above
+               y--;
+            }
+        }
+    }
+}
+else{
+// NOWAVEFORM!
+}
+}
+
 
 void fullInit(){
 
@@ -232,110 +439,26 @@ void fullInit(){
     initAdc();
 }
 
-void post() //POST tests work however they break the buttons. Leaving here until fixed
-{
-    WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
+void  shiftWaveformAdcData(){
+   int i, temp;
+   for (i = 23; i > 0; i--){ //shift the array to the right once - only to 23 since we don't want to overflow the array
+       temp = WaveformAdcData[i-1];
+       WaveformAdcData[i] = temp;
+   }
+}
 
-    PM5CTL0 &= ~LOCKLPM5;           // Disable the GPIO power-on default high-impedance mode
-                                    // to activate previously configured port settings
-
-    // Initialisation - POST. This must be done before anything else in Main,
-    //                        and inside the main function for POST checks to work correctly
-
-    P1DIR |=  0x01;                 // Set P1.0 to output direction
-    P4DIR |=  0x40;                 // Set P4.6 to output direction
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop1: \n"
-         "      mov.w #00000h, 0(R12) \n"
-         "      cmp.w #00000h, 0(R12) \n"
-         "      jne loop1 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop1 \n"
-        );
-
-    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop2: \n"
-         "      mov.w #0ffffh, 0(R12) \n"
-         "      cmp.w #0ffffh, 0(R12) \n"
-         "      jne loop2 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop2 \n"
-        );
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop3: \n"
-         "      mov.w #05555h, 0(R12) \n"
-         "      cmp.w #05555h, 0(R12) \n"
-         "      jne loop3 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop3 \n"
-        );
-
-    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop4: \n"
-         "      mov.w #0aaaah, 0(R12) \n"
-         "      cmp.w #0aaaah, 0(R12) \n"
-         "      jne loop4 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop4 \n"
-        );
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop5: \n"
-         "      mov.w R12, 0(R12) \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop5 \n"
-
-         "      mov.w #001C00h, R12 \n"
-         "loop6: \n"
-         "      cmp.w R12, 0(R12) \n"
-         "      jne loop6 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop6 \n"
-        );
-
-    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop7: \n"
-         "      mov.w #00000h, 0(R12) \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop7 \n"
-        );
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+void displayDots(){
+    int x, temp2;
+    for(x = 0;x < 24; x++){ // print waveform points to display buffer make own function
+         if (x % 2 == 0){
+             temp2 = (WaveformAdcData[x])+12; // y coordinate
+             displayBuffer[x/2][temp2] = displayBuffer[x][temp2+12] & 0x7F; //you need to add 12 to tempt 2 since the coordinates need to be 12 down/
+         } //                                                           0x0111 1111
+         else if (x % 2 == 1){
+             temp2 = WaveformAdcData[x]+12; // y coordinate
+             displayBuffer[x/2][temp2] = displayBuffer[x][temp2+12] & 0xF7; //you need to add 12 to tempt 2 since the coordinates need to be 12 down/
+        } //                                                            0x1111 01111
+    }
 }
 
 int main(void) {
@@ -348,9 +471,23 @@ int main(void) {
     setButtonIntervalTime( button_sampling_rate );
     int firstimemenu = 0;
 
-    char adcRdg[5];
     char doneReading = 0;
 
+    int currentAdc = 0;
+    int temp;
+    int waveMode;
+
+    int averageBpm = 0;
+    int currentBpm = 0;
+    int prevAdcVal = 0;
+    int numHeartBeats = 0;
+    char numHeartBeatsIn15S[16] = {0};
+    int numHeartBeatsIn15SIndex = 0;
+    int previousTimeSeconds = 0;
+    bool Bpm_mode_is_curr = true;
+
+
+    waveMode = 2;
    while(1)
    {
        /* this startup phase stuff should maybe moved to its own function to keep main clean. Needs feedback from group */
@@ -370,32 +507,100 @@ int main(void) {
 
 
            //writeText( "ECG data here ", 20, 1 , 20 , false);
-           if(button1pushed == 1 || button2pushed == 1)
+
+           if( button1pushed == 1 && button2pushed == 1 )
            {
                ECGstate = 2;
                firstimemenu = 1;
+           }
+           else if(button2pushed == 1){
+               Bpm_mode_is_curr = !Bpm_mode_is_curr;
+           }
+           else if(button1pushed == 1){
+               if(waveMode < 3){
+                   waveMode++;
+               }
+               else{
+                   waveMode = 1;
+               }
            }
 
            if (adcReading == 1) {
                if (doneReading == 0) {
 
                    //Extract ADC Reading
-                   sprintf (adcRdg, "%d", getAdcValue() ); //convert int of 5bytes into 5 seperate bytes
-                   writeText( adcRdg, sizeof(adcRdg) / sizeof(adcRdg[0]), 0, 32, false);
+                   currentAdc = getAdcValue();
 
-                   //YOUR CODE HERE ALEX, 1400 is MaX reading: 0-1400
+                   //check change in time
+                   if( BPM_timer_s != previousTimeSeconds ) {
+                       numHeartBeatsIn15SIndex++;
+                       numHeartBeatsIn15S[numHeartBeatsIn15SIndex % ( sizeof(numHeartBeatsIn15S) / sizeof(numHeartBeatsIn15S[0]))] = 0;
+                       previousTimeSeconds++;
+                   }
 
+                   //detect heart beat spike
+                   if( prevAdcVal != 0 && ( currentAdc > ( prevAdcVal + MIN_HEART_BEAT_SPIKE ) ) ) {
+                       numHeartBeats++;
+                       numHeartBeatsIn15S[numHeartBeatsIn15SIndex % ( sizeof(numHeartBeatsIn15S) / sizeof(numHeartBeatsIn15S[0]))]++;
+                   }
 
+                   averageBpm = calculateAverageBpm(numHeartBeats);
+                   currentBpm = calculateCurrentBpm( numHeartBeatsIn15S, sizeof(numHeartBeatsIn15S) / sizeof(numHeartBeatsIn15S[0]),
+                                                                                                                 numHeartBeatsIn15SIndex, averageBpm );
 
-                   //LEAVING THIS FUNCTION HERE. THIS IS LAWRENCES CODE. IT WILL ONLY OUTPUT THE DISPLAY BUFFER FOR A CERTAIN RANGE, SAVING TIME
-                   //outputDisplayBuffer(0, 96);
+                   // We only have space for 1 BPM reading type to be displayed
+                   if( Bpm_mode_is_curr ) {
+                       writeText( "CUR BPM: ", 9, 0, 0, false);
+                       writeBpmReadingToDisplay( currentBpm );
+                   }
+                   else {
+                       writeText( "AVG BPM: ", 9, 0, 0, false);
+                       writeBpmReadingToDisplay( averageBpm );
+                   }
 
-                   //TO SAVE FURTHER TIME. SEVERAL ADC READINGS SHOULD BE READ BEFORE UPDATING THE DISPLAY, PERHAPS EVERY 4 TIMES. THIS CAN BE DONE WITH A VARIABLE IF STATEMENT
-                   outputDisplayBuffer();
-                   doneReading = 1;
-               }
-           } else {
-               doneReading = 0;
+                   prevAdcVal = currentAdc;
+
+                   /////////////////////////////////////////////////////////////////////////////////////////////////
+
+                   temp = currentAdc;
+
+                   //Fit adc values to waveform. Expected range 1700-2400. This will be scaled to 0 - 1400
+                   //temp = getAdcValue();
+                   if (temp <= 2400 && temp >= 1700){
+                       //currentAdc = temp - 1700; // purely for debugging
+                       temp = temp - 1700;
+                       temp = temp * 2;
+                       currentAdc = temp;
+                   }
+                   else{
+                       currentAdc = 0; // we should instead flag if there's an issue - but for now this should do
+                   }
+
+                       //sprintf (adcRdg, "%d", currentAdc ); //convert int of 5bytes into 5 seperate bytes
+                       //writeText( adcRdg, sizeof(adcRdg) / sizeof(adcRdg[0]), 0, 01, false);
+
+                       //writeText(":)" , 2, 6, 01, true);
+                       ////NOTE TO SELF clean this up by putting it in its own function in display.c
+                       //Below sets up the waveform data graph
+                       if(IntialWaveFormSetup >= 24){  //this is to make sure the waveform will be ready - this will only need to be done once per runtime
+
+                           shiftWaveformAdcData();
+                           WaveformAdcData[0] = currentAdc/17;
+                           cleanWaveform();
+                           displayDots();
+                           connectDots(waveMode);
+                       }
+                       else{
+                           WaveformAdcData[IntialWaveFormSetup] = currentAdc/17.5;
+                           IntialWaveFormSetup++;
+                       }
+
+                   }
+               outputDisplayBuffer();
+               doneReading = 1;
+           }
+           else{
+           doneReading = 0;
            }
        }
 
@@ -415,6 +620,9 @@ int main(void) {
                                // This is done here to prevent a screen wipe every waveform iteration
            {
                initDisplayBuffer(0xFF);
+               BPM_timer_ms = 0;
+               BPM_timer_s = 0;
+               numHeartBeats = 0;
            }
 
        }
@@ -424,3 +632,4 @@ int main(void) {
 
 return 0;
 }
+

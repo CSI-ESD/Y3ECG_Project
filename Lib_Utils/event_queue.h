@@ -2,7 +2,7 @@
 #ifndef EVENT_QUEUE_H_
 #define EVENT_QUEUE_H_
 
-#define SIZE_OF_EVENT_Q 8
+#define SIZE_OF_EVENT_Q 2
 
 typedef struct
 {
