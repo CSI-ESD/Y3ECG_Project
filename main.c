@@ -463,6 +463,112 @@ void displayDots(){
 
 int main(void) {
 
+    /* POST TESTS. THESE CAUSE BUTTON ISSUES SO ARE CURRENTLY DISABLED
+    WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
+
+    PM5CTL0 &= ~LOCKLPM5;           // Disable the GPIO power-on default high-impedance mode
+                                    // to activate previously configured port settings
+
+    // Initialisation - POST. This must be done before anything else in Main,
+    //                        and inside the main function for POST checks to work correctly
+
+    P1DIR |=  0x01;                 // Set P1.0 to output direction
+    P4DIR |=  0x40;                 // Set P4.6 to output direction
+    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
+    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+
+    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
+
+    asm(
+         "      mov.w #001C00h, R12 \n"
+         "loop1: \n"
+         "      mov.w #00000h, 0(R12) \n"
+         "      cmp.w #00000h, 0(R12) \n"
+         "      jne loop1 \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop1 \n"
+        );
+
+    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
+    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+
+    asm(
+         "      mov.w #001C00h, R12 \n"
+         "loop2: \n"
+         "      mov.w #0ffffh, 0(R12) \n"
+         "      cmp.w #0ffffh, 0(R12) \n"
+         "      jne loop2 \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop2 \n"
+        );
+
+    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
+    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
+
+    asm(
+         "      mov.w #001C00h, R12 \n"
+         "loop3: \n"
+         "      mov.w #05555h, 0(R12) \n"
+         "      cmp.w #05555h, 0(R12) \n"
+         "      jne loop3 \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop3 \n"
+        );
+
+    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
+    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+
+    asm(
+         "      mov.w #001C00h, R12 \n"
+         "loop4: \n"
+         "      mov.w #0aaaah, 0(R12) \n"
+         "      cmp.w #0aaaah, 0(R12) \n"
+         "      jne loop4 \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop4 \n"
+        );
+
+    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
+    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
+
+    asm(
+         "      mov.w #001C00h, R12 \n"
+         "loop5: \n"
+         "      mov.w R12, 0(R12) \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop5 \n"
+
+         "      mov.w #001C00h, R12 \n"
+         "loop6: \n"
+         "      cmp.w R12, 0(R12) \n"
+         "      jne loop6 \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop6 \n"
+        );
+
+    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
+    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+
+    asm(
+         "      mov.w #001C00h, R12 \n"
+         "loop7: \n"
+         "      mov.w #00000h, 0(R12) \n"
+         "      add #2, R12 \n"
+         "      cmp.w #002400h, R12 \n"
+         "      jn loop7 \n"
+        );
+
+    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
+    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
+    */
+
+
     fullInit(); /* initlization hardware */
 
     initialise_button1();
