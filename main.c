@@ -371,7 +371,7 @@ else if(waveMode == 2){
     }
 }
 else{
-// NOWAVEFORM!
+// NO WAVEFORM! :( SURFS UP DUDE!
 }
 }
 
@@ -461,115 +461,37 @@ void displayDots(){
     }
 }
 
+//this is for a resting heart rate not for exercise!
+int diagnosisBPM (int averageBpm){
+    int dangerLevel; // 3 is extreme danger warning, 2 is warning for too high ,1 is is warning for too low, 0 is stable else is error
+    if(averageBpm < 30 || averageBpm > 120){ //120 isn't too high for exercise but it is for resting
+        writeText( "DEAD", 4, 8, 0, false);
+        dangerLevel = 3;
+    }else if(averageBpm > 100){
+        writeText( "HIGH", 4, 8, 0, false);
+        dangerLevel = 2;
+    }else if(averageBpm < 60){
+        writeText( "LOW", 3, 8, 0, false);
+        dangerLevel = 1;
+    }else{
+        writeText( "GOOD", 4, 8, 0, false);
+        dangerLevel = 0;
+    }
+
+
+    //writeText( averageBpmChar, sizeof(averageBpmChar) / sizeof(averageBpmChar[0]), 9, 0, false);
+//        if( BPM_timer_s >= 5 ) {
+//            formatCurrentBpm( averageBpmChar, averageBpm);
+//            writeText( averageBpmChar, sizeof(averageBpmChar) / sizeof(averageBpmChar[0]), 9, 0, false);
+//        }
+
+    return dangerLevel; // we don't currently use this return but it would be helpful in future developing new features
+}
+
+
 int main(void) {
 
-    /* POST TESTS. THESE CAUSE BUTTON ISSUES SO ARE CURRENTLY DISABLED
-    WDTCTL = WDTPW | WDTHOLD;       // Stop watchdog timer
-
-    PM5CTL0 &= ~LOCKLPM5;           // Disable the GPIO power-on default high-impedance mode
-                                    // to activate previously configured port settings
-
-    // Initialisation - POST. This must be done before anything else in Main,
-    //                        and inside the main function for POST checks to work correctly
-
-    P1DIR |=  0x01;                 // Set P1.0 to output direction
-    P4DIR |=  0x40;                 // Set P4.6 to output direction
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop1: \n"
-         "      mov.w #00000h, 0(R12) \n"
-         "      cmp.w #00000h, 0(R12) \n"
-         "      jne loop1 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop1 \n"
-        );
-
-    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop2: \n"
-         "      mov.w #0ffffh, 0(R12) \n"
-         "      cmp.w #0ffffh, 0(R12) \n"
-         "      jne loop2 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop2 \n"
-        );
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop3: \n"
-         "      mov.w #05555h, 0(R12) \n"
-         "      cmp.w #05555h, 0(R12) \n"
-         "      jne loop3 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop3 \n"
-        );
-
-    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop4: \n"
-         "      mov.w #0aaaah, 0(R12) \n"
-         "      cmp.w #0aaaah, 0(R12) \n"
-         "      jne loop4 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop4 \n"
-        );
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT |=  0x40;                 // Set P4.6 on  (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop5: \n"
-         "      mov.w R12, 0(R12) \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop5 \n"
-
-         "      mov.w #001C00h, R12 \n"
-         "loop6: \n"
-         "      cmp.w R12, 0(R12) \n"
-         "      jne loop6 \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop6 \n"
-        );
-
-    P1OUT |=  0x01;                 // Set P1.0 on  (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-
-    asm(
-         "      mov.w #001C00h, R12 \n"
-         "loop7: \n"
-         "      mov.w #00000h, 0(R12) \n"
-         "      add #2, R12 \n"
-         "      cmp.w #002400h, R12 \n"
-         "      jn loop7 \n"
-        );
-
-    P1OUT &= ~0x01;                 // Set P1.0 off (Green LED)
-    P4OUT &= ~0x40;                 // Set P4.6 off (Red LED)
-    */
-
-
-    fullInit(); /* initlization hardware */
+    fullInit(); /* Initialisation hardware */
 
     initialise_button1();
     initialise_button2();
@@ -590,10 +512,10 @@ int main(void) {
     char numHeartBeatsIn15S[16] = {0};
     int numHeartBeatsIn15SIndex = 0;
     int previousTimeSeconds = 0;
-    bool Bpm_mode_is_curr = true;
+    int Bpm_mode_is_curr = 0;
 
 
-    waveMode = 2;
+   waveMode = 2;    //default wave mode - currently set to thick mode
    while(1)
    {
        /* this startup phase stuff should maybe moved to its own function to keep main clean. Needs feedback from group */
@@ -620,7 +542,12 @@ int main(void) {
                firstimemenu = 1;
            }
            else if(button2pushed == 1){
-               Bpm_mode_is_curr = !Bpm_mode_is_curr;
+               if(Bpm_mode_is_curr < 3){
+                   Bpm_mode_is_curr++;
+              }
+              else{
+                  Bpm_mode_is_curr = 0;
+              }
            }
            else if(button1pushed == 1){
                if(waveMode < 3){
@@ -650,24 +577,26 @@ int main(void) {
                        numHeartBeatsIn15S[numHeartBeatsIn15SIndex % ( sizeof(numHeartBeatsIn15S) / sizeof(numHeartBeatsIn15S[0]))]++;
                    }
 
-                   averageBpm = calculateAverageBpm(numHeartBeats);
+                   averageBpm = calculateAverageBpm(numHeartBeats); // same average is 60, below 20 warning, above 100 warning
                    currentBpm = calculateCurrentBpm( numHeartBeatsIn15S, sizeof(numHeartBeatsIn15S) / sizeof(numHeartBeatsIn15S[0]),
                                                                                                                  numHeartBeatsIn15SIndex, averageBpm );
 
                    // We only have space for 1 BPM reading type to be displayed
-                   if( Bpm_mode_is_curr ) {
+                   if( Bpm_mode_is_curr == 1 ) {
                        writeText( "CUR BPM: ", 9, 0, 0, false);
                        writeBpmReadingToDisplay( currentBpm );
                    }
-                   else {
+                   else if(Bpm_mode_is_curr == 0){
                        writeText( "AVG BPM: ", 9, 0, 0, false);
                        writeBpmReadingToDisplay( averageBpm );
+                   }else if(Bpm_mode_is_curr == 2){ // diagnostic mode
+                       writeText( "P STAT: ", 8, 0, 0, false);
+                       diagnosisBPM( averageBpm ); // 3 is extreme danger warning, 2 is warning for too high ,1 is is warning for too low, else is error
                    }
 
                    prevAdcVal = currentAdc;
 
                    /////////////////////////////////////////////////////////////////////////////////////////////////
-
                    temp = currentAdc;
 
                    //Fit adc values to waveform. Expected range 1700-2400. This will be scaled to 0 - 1400
@@ -681,12 +610,6 @@ int main(void) {
                    else{
                        currentAdc = 0; // we should instead flag if there's an issue - but for now this should do
                    }
-
-                       //sprintf (adcRdg, "%d", currentAdc ); //convert int of 5bytes into 5 seperate bytes
-                       //writeText( adcRdg, sizeof(adcRdg) / sizeof(adcRdg[0]), 0, 01, false);
-
-                       //writeText(":)" , 2, 6, 01, true);
-                       ////NOTE TO SELF clean this up by putting it in its own function in display.c
                        //Below sets up the waveform data graph
                        if(IntialWaveFormSetup >= 24){  //this is to make sure the waveform will be ready - this will only need to be done once per runtime
 
